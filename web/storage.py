@@ -5,19 +5,24 @@ from django.core.files.storage import Storage
 from azure.storage import *
 from django.core.files.base import ContentFile
 
-credentials = {
-	'blobAccount' : '',
+
+
+azure_credentials = {
+	'blobAccount' : 'nyxstorage',
 	'blobContainer' : 'filestock',
-	'blobKey' : '',
+	'blobKey' : '4Ly8rDtQwz2UuPpd7CRZyQF6HWtPSB3xrk7X/5lSBGwLJLHNHh4YvpWzcrVZSD/iDwj4JTkUXG7toTNINyM6+Q==',
+	'ssl' : True,
 }
-baseStorageUri = "http://{blobAccount}.blob.core.windows.net/{blobContainer}/".format(**credentials)
+
+# baseStorageUri = "http://{blobAccount}.blob.core.windows.net/{blobContainer}/".format(**credentials)
 
 class AzureBlobStorage(Storage):
-	
+
 	def __init__(self, container=None):
-		self.blob_service = BlobService(account_name=credentials['blobAccount'], account_key=credentials['blobKey'])
+		self.use_ssl = azure_credentials['ssl']
+		self.blob_service = BlobService(account_name=azure_credentials['blobAccount'], account_key=azure_credentials['blobKey'])
 		if not container == None:
-			self.container = credentials['blobContainer']
+			self.container = azure_credentials['blobContainer']
 		else:
 			self.container = container
 
@@ -59,7 +64,7 @@ class AzureBlobStorage(Storage):
 
 	def delete(self, name):
 		self.blob_service.delete_blob(self.container, name)
-    		
+
 	def exists(self, name):    	##
 		try:
 			self.blob_service.get_blob_properties(self.container, name)
@@ -77,10 +82,10 @@ class AzureBlobStorage(Storage):
 			dirs.append(directory)
 			files.append(file_name)
 
-		for d in dirs:
-			print d
-		for f in files:
-			print f
+		# for d in dirs:
+		# 	print d
+		# for f in files:
+		# 	print f
 
 		return (dirs, files)
 
@@ -88,15 +93,37 @@ class AzureBlobStorage(Storage):
 		properties = self.blob_service.get_blob_properties(self.container, name)
 		return properties.get('content-length')
 
-	def url(self, name):
-		blob = self.blob_service.list_blobs(self.container, prefix=name)
-		return blob.blobs[0].url
-
 	def modified_time(self, name):
 		metadata = self.blob_service.get_blob_metadata(self.container, name)
 		modified_time = float(metadata.get('x-ms-meta-modified_time'))
 		return datetime.fromtimestamp(modified_time)
 
+	def _get_protocol(self):
+		if self.use_ssl:
+			return 'https'
+		return 'http'
+
+	def _get_service(self):
+		if not hasattr(self, '_blob_service'):
+			self._blob_service = BlobService(account_name=azure_credentials['blobAccount'], account_key=azure_credentials['blobKey'],
+			 	protocol=self._get_protocol())
+
+		return self._blob_service
+
+	def _get_container_url(self):
+		# if self.cdn_host is not None:
+		# 	return self.cdn_host
+
+		if not hasattr(self, '_container_url'):
+			self._container_url =  '%s://%s/%s' % (self._get_protocol(),
+			self._get_service()._get_host(), self.container)
+
+		return self._container_url
+
+
+	def url(self, name):
+
+		return '%s/%s' % (self._get_container_url(), name)
 
 def make_readable_name(name):
 	name = name.replace(' ', '_')
@@ -109,4 +136,3 @@ def make_readable_name(name):
 	current = datetime.now()
 	name = str(current.year) + '_' + str(current.month) + '_' + str(current.day) + '_' + str(current.hour) + '_' + str(current.minute) + '_' + str(current.second) + '_' + name
 	return name
-		
