@@ -14,8 +14,6 @@ azure_credentials = {
 	'ssl' : True,
 }
 
-# baseStorageUri = "http://{blobAccount}.blob.core.windows.net/{blobContainer}/".format(**credentials)
-
 class AzureBlobStorage(Storage):
 
 	def __init__(self, container=None):
@@ -82,11 +80,6 @@ class AzureBlobStorage(Storage):
 			dirs.append(directory)
 			files.append(file_name)
 
-		# for d in dirs:
-		# 	print d
-		# for f in files:
-		# 	print f
-
 		return (dirs, files)
 
 	def size(self, name):
@@ -125,13 +118,18 @@ class AzureBlobStorage(Storage):
 
 		return '%s/%s' % (self._get_container_url(), name)
 
+	def modified_time(self, name):
+		metadata = self.blob_service.get_blob_metadata(self.container, name)
+		modified_time = float(metadata.get('x-ms-meta-modified_time'))
+		return datetime.fromtimestamp(modified_time)
+
 def make_readable_name(name):
 	name = name.replace(' ', '_')
-	# name = name.replace('á', 'a')
-	# name = name.replace('é', 'e')
-	# name = name.replace('í', 'i')
-	# name = name.replace('ó', 'o')
-	# name = name.replace('ñ', 'n')
+	name = name.replace(u'\xe1', 'a')
+	name = name.replace(u'\xe9', 'e')
+	name = name.replace(u'\xed', 'i')
+	name = name.replace(u'\xf3', 'o')
+	name = name.replace(u'\xfa', 'n')
 	name = name[-30:]
 	current = datetime.now()
 	name = str(current.year) + '_' + str(current.month) + '_' + str(current.day) + '_' + str(current.hour) + '_' + str(current.minute) + '_' + str(current.second) + '_' + name
