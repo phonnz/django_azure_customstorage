@@ -8,9 +8,9 @@ from django.core.files.base import ContentFile
 
 
 azure_credentials = {
-	'blobAccount' : 'nyxstorage',
-	'blobContainer' : 'filestock',
-	'blobKey' : '4Ly8rDtQwz2UuPpd7CRZyQF6HWtPSB3xrk7X/5lSBGwLJLHNHh4YvpWzcrVZSD/iDwj4JTkUXG7toTNINyM6+Q==',
+	'blobAccount' : '',
+	'blobContainer' : '',
+	'blobKey' : '',
 	'ssl' : True,
 }
 
